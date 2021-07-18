@@ -569,119 +569,121 @@ def interpolate_1d(  # noqa: C901
         Allow extrapolation when a new year is outside the parameter years.
     extrapol_neg : bool
         Allow negative values obtained by extrapolation.
+
+        - Appears to have no effect when extrapolating *before* `horizon`.
     bound_extend : bool
         Allow extrapolation of bounds for new years
     """
     horizon_new = sorted(horizon + yrs_new)
     idx = [x for x in df.columns if x not in [year_col, value_col]]
-    if not df.empty:
-        df2 = df.pivot_table(index=idx, columns=year_col, values=value_col)
 
-        # To sort the new years smaller than the first year for
-        # extrapolation (e.g. 2025 values are calculated first; then
-        # values of 2015 based on 2020 and 2025)
-        year_before = sorted([x for x in yrs_new if x < min(df2.columns)], reverse=True)
-        if year_before and extrapolate:
-            for y in year_before:
-                yrs_new.insert(len(yrs_new), yrs_new.pop(yrs_new.index(y)))
+    if df.empty:
+        log.warning("The submitted dataframe is empty, so returned empty results")
+        return df
 
-        for yr in yrs_new:
-            if yr > max(horizon):
-                extrapol = True
-            else:
-                extrapol = extrapolate
+    df2 = df.pivot_table(index=idx, columns=year_col, values=value_col)
 
-            # a) If this new year greater than modeled years, do extrapolation
-            if yr > max(df2.columns) and extrapol:
-                if yr == horizon_new[horizon_new.index(max(df2.columns)) + 1]:
-                    year_pre = max([x for x in df2.columns if x < yr])
+    # To sort the new years smaller than the first year for extrapolation (e.g. 2025
+    # values are calculated first; then values of 2015 based on 2020 and 2025)
+    year_before = sorted([x for x in yrs_new if x < min(df2.columns)], reverse=True)
+    if year_before and extrapolate:
+        for y in year_before:
+            yrs_new.insert(len(yrs_new), yrs_new.pop(yrs_new.index(y)))
 
-                    if len([x for x in df2.columns if x < yr]) >= 2:
-                        year_pp = max([x for x in df2.columns if x < year_pre])
-                        df2[yr] = intpol(
-                            df2[year_pre], df2[year_pp], year_pre, year_pp, yr
-                        )
+    for yr in yrs_new:
+        if yr > max(horizon):
+            extrapol = True
+        else:
+            extrapol = extrapolate
 
-                        if bound_extend:
-                            df2[yr] = df2[yr].fillna(df2[year_pre])
-
-                        df2[yr][np.isinf(df2[year_pre])] = df2[year_pre]
-                        if (
-                            not df2[yr].loc[(df2[yr] < 0) & (df2[year_pre] >= 0)].empty
-                            and extrapol_neg
-                        ):
-                            df2.loc[(df2[yr] < 0) & (df2[year_pre] >= 0), yr] = (
-                                df2.loc[(df2[yr] < 0) & (df2[year_pre] >= 0), year_pre]
-                                * extrapol_neg
-                            )
-                    else:
-                        df2[yr] = df2[year_pre]
-
-            # b) If the new year is smaller than modeled years, extrapolate
-            elif yr < min(df2.columns) and extrapol:
-                year_next = min([x for x in df2.columns if x > yr])
-
-                # To make sure the new year is not two steps smaller
-                cond = year_next == horizon_new[horizon_new.index(yr) + 1]
-
-                if len([x for x in df2.columns if x > yr]) >= 2 and cond:
-                    year_nn = min([x for x in df2.columns if x > year_next])
-                    df2[yr] = intpol(
-                        df2[year_next], df2[year_nn], year_next, year_nn, yr
-                    )
-                    df2[yr][np.isinf(df2[year_next])] = df2[year_next]
-                    if (
-                        not df2[yr].loc[(df2[yr] < 0) & (df2[year_next] >= 0)].empty
-                        and extrapol_neg
-                    ):
-                        df2.loc[(df2[yr] < 0) & (df2[year_next] >= 0), yr] = (
-                            df2.loc[(df2[yr] < 0) & (df2[year_next] >= 0), year_next]
-                            * extrapol_neg
-                        )
-
-                elif bound_extend and cond:
-                    df2[yr] = df2[year_next]
-
-            # c) Otherise, do intrapolation
-            elif yr > min(df2.columns) and yr < max(df2.columns):
+        # a) If this new year greater than modeled years, do extrapolation
+        if yr > max(df2.columns) and extrapol:
+            if yr == horizon_new[horizon_new.index(max(df2.columns)) + 1]:
                 year_pre = max([x for x in df2.columns if x < yr])
-                year_next = min([x for x in df2.columns if x > yr])
-                df2[yr] = intpol(df2[year_pre], df2[year_next], year_pre, year_next, yr)
 
-                # Extrapolate for new years if the value exists for the
-                # previous year but not for the next years
-                # TODO: here is the place that should be changed if the
-                # new year should go to the time step before the existing one
-                if [x for x in df2.columns if x > year_next]:
-                    year_nn = min([x for x in df2.columns if x > year_next])
-                    df2[yr] = df2[yr].fillna(
-                        intpol(df2[year_next], df2[year_nn], year_next, year_nn, yr)
-                    )
+                if len([x for x in df2.columns if x < yr]) >= 2:
+                    year_pp = max([x for x in df2.columns if x < year_pre])
+                    df2[yr] = intpol(df2[year_pre], df2[year_pp], year_pre, year_pp, yr)
+
+                    if bound_extend:
+                        df2[yr] = df2[yr].fillna(df2[year_pre])
+
+                    df2[yr][np.isinf(df2[year_pre])] = df2[year_pre]
                     if (
-                        not df2[yr].loc[(df2[yr] < 0) & (df2[year_next] >= 0)].empty
+                        not df2[yr].loc[(df2[yr] < 0) & (df2[year_pre] >= 0)].empty
                         and extrapol_neg
                     ):
-                        df2.loc[(df2[yr] < 0) & (df2[year_next] >= 0), yr] = (
-                            df2.loc[(df2[yr] < 0) & (df2[year_next] >= 0), year_next]
+                        df2.loc[(df2[yr] < 0) & (df2[year_pre] >= 0), yr] = (
+                            df2.loc[(df2[yr] < 0) & (df2[year_pre] >= 0), year_pre]
                             * extrapol_neg
                         )
+                else:
+                    df2[yr] = df2[year_pre]
 
-                if bound_extend:
-                    df2[yr] = df2[yr].fillna(df2[year_pre])
-                df2[yr][np.isinf(df2[year_pre])] = df2[year_pre]
+        # b) If the new year is smaller than modeled years, extrapolate
+        elif yr < min(df2.columns) and extrapol:
+            year_next = min([x for x in df2.columns if x > yr])
 
-        df2 = (
-            pd.melt(
-                df2.reset_index(),
-                id_vars=idx,
-                value_vars=[x for x in df2.columns if x not in idx],
-                var_name=year_col,
-                value_name=value_col,
-            )
-            .dropna(subset=[value_col])
-            .reset_index(drop=True)
+            # To make sure the new year is not two steps smaller
+            cond = year_next == horizon_new[horizon_new.index(yr) + 1]
+
+            if len([x for x in df2.columns if x > yr]) >= 2 and cond:
+                year_nn = min([x for x in df2.columns if x > year_next])
+                df2[yr] = intpol(df2[year_next], df2[year_nn], year_next, year_nn, yr)
+                df2[yr][np.isinf(df2[year_next])] = df2[year_next]
+                if (
+                    not df2[yr].loc[(df2[yr] < 0) & (df2[year_next] >= 0)].empty
+                    and extrapol_neg
+                ):
+                    df2.loc[(df2[yr] < 0) & (df2[year_next] >= 0), yr] = (
+                        df2.loc[(df2[yr] < 0) & (df2[year_next] >= 0), year_next]
+                        * extrapol_neg
+                    )
+
+            elif bound_extend and cond:
+                df2[yr] = df2[year_next]
+
+        # c) Otherise, do intrapolation
+        elif yr > min(df2.columns) and yr < max(df2.columns):
+            year_pre = max([x for x in df2.columns if x < yr])
+            year_next = min([x for x in df2.columns if x > yr])
+            df2[yr] = intpol(df2[year_pre], df2[year_next], year_pre, year_next, yr)
+
+            # Extrapolate for new years if the value exists for the previous year but
+            # not for the next years
+            # TODO: here is the place that should be changed if the new year should go
+            # to the time step before the existing one
+            if [x for x in df2.columns if x > year_next]:
+                year_nn = min([x for x in df2.columns if x > year_next])
+                df2[yr] = df2[yr].fillna(
+                    intpol(df2[year_next], df2[year_nn], year_next, year_nn, yr)
+                )
+                if (
+                    not df2[yr].loc[(df2[yr] < 0) & (df2[year_next] >= 0)].empty
+                    and extrapol_neg
+                ):
+                    df2.loc[(df2[yr] < 0) & (df2[year_next] >= 0), yr] = (
+                        df2.loc[(df2[yr] < 0) & (df2[year_next] >= 0), year_next]
+                        * extrapol_neg
+                    )
+
+            if bound_extend:
+                df2[yr] = df2[yr].fillna(df2[year_pre])
+            df2[yr][np.isinf(df2[year_pre])] = df2[year_pre]
+
+    return (
+        pd.melt(
+            df2.reset_index(),
+            id_vars=idx,
+            value_vars=[x for x in df2.columns if x not in idx],
+            var_name=year_col,
+            value_name=value_col,
         )
-        df2 = df2.sort_values(idx).reset_index(drop=True)
+        .dropna(subset=[value_col])
+        .reset_index(drop=True)
+        .sort_values(idx)
+        .reset_index(drop=True)
+    )
     else:
         log.warning("The submitted dataframe is empty, so returned empty results")
         df2 = df
