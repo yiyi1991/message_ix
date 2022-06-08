@@ -84,6 +84,11 @@ storage_initial, storage_self_discharge, time_order
 map_node(node,node) = yes ;
 
 *----------------------------------------------------------------------------------------------------------------------*
+* ensure that map_tec_extended includes entire model horizon when lifetime is defined.                                                                          
+*----------------------------------------------------------------------------------------------------------------------*
+
+map_tec_extended(node,tec,year_all)$(technical_lifetime(node,tec,year_all) ) = yes  ;
+*----------------------------------------------------------------------------------------------------------------------*
 * auxiliary mappings for the implementation of bounds over all modes and system reliability/flexibility constraints    *
 *----------------------------------------------------------------------------------------------------------------------*
 
@@ -116,15 +121,28 @@ map_tec_act(node,tec,year_all,mode,time)$( map_tec_time(node,tec,year_all,time) 
 
 * mapping of technology lifetime to all 'current' periods (for all non-investment technologies)
 map_tec_lifetime(node,tec,year_all,year_all)$( map_tec(node,tec,year_all) ) = yes ;
+map_tec_lifetime_extended(node,tec,year_all,year_all)$( map_tec_extended(node,tec,year_all) ) = yes ;
 
 * mapping of technology lifetime to all periods 'year_all' which are within the economic lifetime
 * (if built in period 'vintage')
 map_tec_lifetime(node,tec,vintage,year_all)$( map_tec(node,tec,vintage) AND map_tec(node,tec,year_all)
     AND map_period(vintage,year_all)
     AND duration_period_sum(vintage,year_all) < technical_lifetime(node,tec,vintage) ) = yes ;
+    
+* mapping of technology lifetime to all periods 'year_all' which are within the economic lifetime
+* (if built in period 'vintage')
+map_tec_lifetime_extended(node,tec,vintage,year_all)$( map_tec_extended(node,tec,vintage) AND map_tec_extended(node,tec,year_all)
+    AND map_period(vintage,year_all)
+    AND duration_period_sum(vintage,year_all) < technical_lifetime(node,tec,vintage) ) = yes ;
 
 * mapping of technology lifetime to all periods 'year_all' which were built prior to the beginning of the model horizon
 map_tec_lifetime(node,tec,historical,year_all)$( map_tec(node,tec,year_all) AND map_period(historical,year_all)
+    AND historical_new_capacity(node,tec,historical)
+    AND duration_period_sum(historical,year_all)
+        < sum(first_period, technical_lifetime(node,tec,first_period) ) ) = yes ;
+        
+* mapping of technology lifetime to all periods 'year_all' which were built prior to the beginning of the model horizon
+map_tec_lifetime_extended(node,tec,historical,year_all)$( map_tec_extended(node,tec,year_all) AND map_period(historical,year_all)
     AND historical_new_capacity(node,tec,historical)
     AND duration_period_sum(historical,year_all)
         < sum(first_period, technical_lifetime(node,tec,first_period) ) ) = yes ;
