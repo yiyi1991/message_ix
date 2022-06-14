@@ -1,5 +1,5 @@
-import pandas as pd
 import numpy as np
+import pandas as pd
 import pandas.testing as pdt
 
 from message_ix import make_df

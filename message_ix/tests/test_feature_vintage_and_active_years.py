@@ -95,8 +95,7 @@ def test_vintage_and_active_years1(test_mp):
 
     # Default / no arguments
     assert_frame_equal(
-        _q(yvya_all, f"year_act >= {fmy}"),
-        scen.vintage_and_active_years(),
+        _q(yvya_all, f"year_act >= {fmy}"), scen.vintage_and_active_years(),
     )
 
     # part is before horizon

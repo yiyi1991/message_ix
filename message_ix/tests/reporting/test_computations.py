@@ -94,12 +94,7 @@ def test_concat(dantzig_reporter):
 
 
 def test_plot_cumulative(tmp_path):
-    x = pd.Series(
-        {
-            ("region", "a"): 500,
-            ("region", "b"): 1000,
-        }
-    )
+    x = pd.Series({("region", "a"): 500, ("region", "b"): 1000,})
     x.index.names = ["n", "g"]
 
     y = pd.Series(

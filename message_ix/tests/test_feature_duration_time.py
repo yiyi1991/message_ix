@@ -14,13 +14,7 @@ from message_ix import Scenario
 
 # A function for generating a simple model with sub-annual time slices
 def model_generator(
-    test_mp,
-    comment,
-    tec_time,
-    demand_time,
-    time_steps,
-    com_dict,
-    yr=2020,
+    test_mp, comment, tec_time, demand_time, time_steps, com_dict, yr=2020,
 ):
     """
 
