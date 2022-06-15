@@ -98,7 +98,8 @@ def dl(branch, tag, path):
     else:
         # Get tag information using GitHub API
         args = dict(
-            url="https://api.github.com/repos/iiasa/message_ix/tags", headers=dict(),
+            url="https://api.github.com/repos/iiasa/message_ix/tags",
+            headers=dict(),
         )
 
         # The API rate-limits unathenticated requests by IP address. In some CI

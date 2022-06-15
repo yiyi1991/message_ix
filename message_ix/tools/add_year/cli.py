@@ -175,7 +175,12 @@ def main(
 
     new_kw = dict(model=model_new, scenario=scen_new)
     if create_new:
-        new_kw.update(dict(version="new", annotation="5 year modelling",))
+        new_kw.update(
+            dict(
+                version="new",
+                annotation="5 year modelling",
+            )
+        )
 
     # Output for debugging
     print(years_new)

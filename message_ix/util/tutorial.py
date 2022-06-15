@@ -35,7 +35,11 @@ def prepare_plots(rep: Reporter, input_costs="$/GWa") -> None:
     # Conversion factors between input units and plotting units
     # TODO use exact units in all tutorials
     # TODO allow the correct units to pass through reporting
-    cost_unit_conv = {"$/GWa": 1.0, "$/MWa": 1e3, "$/kWa": 1e6,}.get(input_costs, 1.0)
+    cost_unit_conv = {
+        "$/GWa": 1.0,
+        "$/MWa": 1e3,
+        "$/kWa": 1e6,
+    }.get(input_costs, 1.0)
 
     # Basic setup of the reporter
     rep.configure(units={"replace": {"-": ""}})
