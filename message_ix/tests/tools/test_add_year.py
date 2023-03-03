@@ -2,7 +2,7 @@ import pytest
 from ixmp import Platform
 
 from message_ix import Scenario, make_df
-from message_ix.tools.add_year import add_year, interpolate_1d, i1d_genno
+from message_ix.tools.add_year import add_year, i1d_genno, interpolate_1d
 
 
 @pytest.fixture
